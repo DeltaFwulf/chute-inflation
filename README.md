@@ -1,2 +1,3 @@
 # chute-inflation
-1D parachute inflation model
+
+Parachute inflation load calculation utilising both extended Pflanz-Ludtke and Momentum-Impulse theorem.
