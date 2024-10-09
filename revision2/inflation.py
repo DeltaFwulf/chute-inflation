@@ -1,6 +1,7 @@
-from math import sqrt, pi, sin, cos
+from math import sqrt, pi, sin, cos, exp
 import numpy as np
 import matplotlib.pyplot as plt
+from parachute import Parachute
 
 
 """This script is used to run a 2-DOF simulation of nondimensionalised inflation of a parachute using an extended Pflanz-Ludtke method.
@@ -58,35 +59,34 @@ def rk4mutated(nvFcn, angFcn, nv0:float, ang0:float, t0:float, h:float, params:d
 
 
 
-def inflation():
+def inflatePflanzLudtke():
     """non-dimensional inflation of a parachute"""
 
-    # flight parameters:
-    vStretch = 30 # estimate using line stretch simulation
-    density = 0.06373  # XXX: use altitude to get an approximation here
-    tFill = 0.5 # XXX: obtain from drop testing
-    g = 9.81
-    ang0 = 0 # initial flight path angle 
+    parachute = Parachute('flat-circular',
+                          D0=3.5,
+                          Cd=1.9
+                          )
 
+    # flight parameters:
+    vStretch = 10 # estimate using line stretch simulation
+    density = 0.42
+    ang0 = 0 # 0 is horizontal, -90 is straight down
     mSystem = 6
 
-    # Parachute-specific data
-    D0 = 3.5
-    S0 = pi * D0**2 / 4
-    Cd0 = 1.9
-    CdS0 = Cd0 * S0
-    j = 6
-    
+    # Estimate inflation time with Knacke's method (constant inflation volume):
+    tFill = parachute.tFill(vStretch, density)
+    CdS0 = parachute.Cd * parachute.S0
+        
     # Parameters for ODEs
-    nFill = tFill * vStretch / D0 # non-dimensional time
-    vTerm = sqrt(2 * mSystem * g / (density * CdS0))
+    nFill = tFill * vStretch / parachute.D0 # non-dimensional time
+    vTerm = sqrt(2 * mSystem * 9.81 / (density * CdS0))
 
     print(f"terminal velocity = {vTerm}")
 
-    A = vTerm**2 / (g * D0 * nFill)
+    A = vTerm**2 / (9.81 * parachute.D0 * nFill)
     B = A * (vStretch / vTerm)**2 # a combined parameter
 
-    params = {'A':A, 'B':B, 'j':j}
+    params = {'A':A, 'B':B, 'j':parachute.j}
 
     dnt = 1e-3
     ntFinal = 1 # FIXME: this should really be Cx^1/j
@@ -105,30 +105,37 @@ def inflation():
         nv[i], ang[i] = rk4mutated(dVelRatio, dAngle, nv[i-1], ang[i-1], nt[i-1], dnt, params)
         x[i] = nv[i]**2 * nt[i]**params['j']
 
-        print(f"t/tf: {nt[i]}, nv: {nv[i]}, ang{ang[i]}")
+        #print(f"t/tf: {nt[i]}, nv: {nv[i]}, ang{ang[i]}")
 
-    plt.figure(0)
-    plt.plot(nt, nv, '-k')
-
-    plt.xlabel("t/tf")
-    plt.ylabel("v/vs")
-       
     # convert to real forces and plot parameters over inflation period (v *= vs, t *= tFill)
     v = nv * vStretch
     t = nt * tFill
 
-    plt.figure(20)
+    plt.figure(10)
     plt.plot(t, v, '-b')
-    plt.xlabel("time, s")
-    plt.ylabel("velocity, m/s")
+    plt.xlabel("Time, s")
+    plt.ylabel("Velocity, m/s")
+
+    plt.figure(20)
+    plt.plot(t, ang*180/pi, '-k')
+    plt.xlabel("Time, s")
+    plt.ylabel("Angle, degree")
+
+    # estimate peak loading using base Pflanz-Ludtke method (see if we underpredict)
+    Ckl = np.max(x)
+    fMaxBasic = Ckl * 0.5 * density * vStretch**2 * CdS0
+
+    # estimate peak loading using extended Pflanz-Ludtke method (see if this improves things)
+    C1 = sqrt(parachute.j) * (vTerm/vStretch)**2 * exp(-B)
+    C2 = sqrt(parachute.j) * (vTerm/vStretch)**2 * (1 - exp(-B)) * sin(-ang0) * exp(-(A/6)*parachute.j**0.25)
+
+    Ck_ext = Ckl + C1 + C2
+    fMaxExt = Ck_ext * 0.5 * density * vStretch**2 * CdS0
+
+    print(f"peak acceleration (extended) = {fMaxExt/(mSystem * 9.81)} g")
+    print(f"peak load (basic model): {fMaxBasic} N")
+    print(f"peak load (extended model): {fMaxExt} N")
 
     plt.show()
 
-    # estimate peak loading using base Pflanz-Ludtke method (see if we underpredict)
-
-
-    # estimate peak loading using extended Pflanz-Ludtke method (see if this improves things)
-
-
-
-inflation()
+inflatePflanzLudtke()
