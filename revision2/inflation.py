@@ -63,15 +63,15 @@ def inflatePflanzLudtke():
     """non-dimensional inflation of a parachute"""
 
     parachute = Parachute('flat-circular',
-                          D0=3.5,
-                          Cd=1.9
+                          D0=0.6096,
+                          Cd=1.346
                           )
 
     # flight parameters:
-    vStretch = 10 # estimate using line stretch simulation
-    density = 0.42
-    ang0 = 0 # 0 is horizontal, -90 is straight down
-    mSystem = 6
+    vStretch = 30 # estimate using line stretch simulation
+    density = 1.225
+    ang0 = -60 * pi / 180 # 0 is horizontal, -90 is straight down
+    mSystem = 0.75
 
     # Estimate inflation time with Knacke's method (constant inflation volume):
     tFill = parachute.tFill(vStretch, density)
@@ -80,8 +80,6 @@ def inflatePflanzLudtke():
     # Parameters for ODEs
     nFill = tFill * vStretch / parachute.D0 # non-dimensional time
     vTerm = sqrt(2 * mSystem * 9.81 / (density * CdS0))
-
-    print(f"terminal velocity = {vTerm}")
 
     A = vTerm**2 / (9.81 * parachute.D0 * nFill)
     B = A * (vStretch / vTerm)**2 # a combined parameter
@@ -105,21 +103,20 @@ def inflatePflanzLudtke():
         nv[i], ang[i] = rk4mutated(dVelRatio, dAngle, nv[i-1], ang[i-1], nt[i-1], dnt, params)
         x[i] = nv[i]**2 * nt[i]**params['j']
 
-        #print(f"t/tf: {nt[i]}, nv: {nv[i]}, ang{ang[i]}")
-
     # convert to real forces and plot parameters over inflation period (v *= vs, t *= tFill)
     v = nv * vStretch
     t = nt * tFill
 
-    plt.figure(10)
-    plt.plot(t, v, '-b')
-    plt.xlabel("Time, s")
-    plt.ylabel("Velocity, m/s")
+    # Plot velocity, angle, trajectory, force over inflation period
+    fig, axs = plt.subplots(nrows=1, ncols=2)
 
-    plt.figure(20)
-    plt.plot(t, ang*180/pi, '-k')
-    plt.xlabel("Time, s")
-    plt.ylabel("Angle, degree")
+    axs[0].plot(t, v, '-b')
+    axs[0].set_xlabel("time, s")
+    axs[0].set_ylabel("velocity, m/s")
+
+    axs[1].plot(t, ang*180/pi, '-k')
+    axs[1].set_xlabel("time, s")
+    axs[1].set_ylabel("angle from horizontal, deg")
 
     # estimate peak loading using base Pflanz-Ludtke method (see if we underpredict)
     Ckl = np.max(x)
@@ -132,10 +129,10 @@ def inflatePflanzLudtke():
     Ck_ext = Ckl + C1 + C2
     fMaxExt = Ck_ext * 0.5 * density * vStretch**2 * CdS0
 
-    print(f"peak acceleration (extended) = {fMaxExt/(mSystem * 9.81)} g")
-    print(f"peak load (basic model): {fMaxBasic} N")
-    print(f"peak load (extended model): {fMaxExt} N")
-
+    print(f"Touchdown Velocity = {'%.3f' % vTerm} m/s\n")
+    print(f"Basic Model Results:\nAcceleration: \t{'%.3f' % (fMaxBasic / mSystem)} m/s^2\nLoad:\t\t{'%.3f' % fMaxBasic} N\n")
+    print(f"Extended Model Results:\nAcceleration: \t{'%.3f' % (fMaxExt / mSystem)} m/s^2\nLoad:\t\t{'%.3f' % fMaxExt} N")
+    
     plt.show()
 
 inflatePflanzLudtke()
