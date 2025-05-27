@@ -10,6 +10,7 @@ class Parachute():
 
     def __init__(self, d0:float, porosity:float=0):
 
+        self.type = 'generic'
         self.infExp = 0
         self.d0 = d0
         self.porosity = porosity
@@ -29,6 +30,7 @@ class FlatCircular(Parachute):
 
     def __init__(self, d0:float, porosity:float=0):
 
+        self.type = 'flat circular'
         self.infExp = 6
         self.d0 = d0
         self.porosity = porosity
@@ -53,6 +55,7 @@ class Ribbon(Parachute):
 
     def __init__(self, d0:float, porosity:float=0):
 
+        self.type = 'ribbon'
         self.infExp = 1
         self.d0 = d0
         self.porosity = porosity
@@ -76,6 +79,7 @@ class RingSlot(Parachute):
 
     def __init__(self, d0:float, porosity:float=0):
 
+        self.type = 'ringslot'
         self.infExp = 1
         self.d0 = d0
         self.porosity = porosity
@@ -92,6 +96,7 @@ class ExtendedSkirt(Parachute):
 
     def __init__(self, d0:float, porosity:float=0):
 
+        self.type = 'extended skirt'
         self.infExp = 2
         self.d0 = d0
         self.porosity = porosity
@@ -109,6 +114,7 @@ class Cross(Parachute):
 
     def __init__(self, d0:float, porosity:float=0):
 
+        self.type = 'cross'
         self.infExp = 3
         self.d0 = d0
         self.porosity = porosity
@@ -119,3 +125,30 @@ class Cross(Parachute):
     
     def tFill(self, v0:float) -> float:
         return 8.7 * self.cd * self.Aref / (v0**0.9)
+    
+
+
+class BlackCatIris(Parachute):
+
+    # this has been approximated as an annular parachute for the time being, until drop tests can confirm parachute performance
+
+    def __init__(self, d0:float, porosity:float=0):
+
+        self.type = 'blackcat rocketry iris'
+        self.infExp = 6
+        self.d0 = d0
+        self.porosity = porosity
+        self.cd = 1.34
+        self.Aref = pi * self.d0**2 / 4
+        self.cx = 1.4
+
+    
+    def tFill(self, v0:float) -> float:
+        
+        if self.porosity < 0.25:
+            t0 = 2.5 * self.d0/(v0**0.85)
+
+        else:
+            t0 = 4 * self.d0 / (v0**0.85)
+
+        return t0

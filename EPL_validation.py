@@ -131,7 +131,6 @@ def compareMethods():
     # Decelerator Configuration ###############################################################################################
     parachute = FlatCircular(d0=1)
     #parachute = Ribbon(d0=1)
-    parachute.cx = 1
     mParachute = 0.1
     mPayload = 10
     masses = {'parachute':mParachute, 'payload':mPayload}
@@ -160,6 +159,7 @@ def compareMethods():
     ax.set_ylabel('Ck')
     ax.set_xlabel('A')
     ax.set_xscale('log')
+    ax.legend(['simulation', 'pflanz-ludtke', 'extended'])
 
     plt.show()
 
